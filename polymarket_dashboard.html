@@ -1,0 +1,691 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<!-- Force the browser to revalidate the HTML so feature/data updates show up
+     without a manual hard-refresh (no stale cached copy). -->
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
+<!-- Build stamp: an already-open tab compares this against the live version
+     every few minutes and reloads ITSELF when a new build ships, so stale tabs
+     never get stuck on old code. No live-data polling — just a version check. -->
+<meta name="build-stamp" content="2026-11-12 11:29:08 PM">
+<title>Polymarket Active Trades — Followed Leaderboard</title>
+<style>
+  * { box-sizing: border-box; }
+  body {
+    background: #0d1117; color: #c9d1d9;
+    font-family: 'JetBrains Mono','Cascadia Mono',Consolas,monospace;
+    font-size: 12.5px; margin: 0; padding: 20px;
+  }
+  h1 { font-size: 18px; color: #58a6ff; margin: 0 0 4px 0; letter-spacing: -0.3px; }
+  .meta { color: #6e7681; font-size: 11px; margin-bottom: 16px; }
+  .meta b { color: #c9d1d9; }
+  .traders-bar {
+    display: flex; gap: 12px; margin-bottom: 16px; flex-wrap: wrap;
+  }
+  .trader-pill {
+    background: #161b22; border: 1px solid #30363d; border-radius: 6px;
+    padding: 8px 14px; font-size: 11.5px;
+  }
+  .trader-pill b { color: #f0883e; font-size: 13px; }
+  .trader-pill .stat { color: #8b949e; margin-left: 8px; }
+  .trader-pill .stat .pos { color: #56d364; }
+
+  /* ── BTC 5m scalp loop widget ─────────────────────────────────── */
+  .scalp-widget { margin-bottom: 16px; }
+  .scalp-card {
+    background: #0f1a2c; border: 1px solid #1f3a5f; border-radius: 6px;
+    padding: 12px 14px; font-size: 11.5px;
+  }
+  .scalp-card.empty { color: #6e7681; padding: 10px 14px; font-style: italic; }
+  .scalp-header { color: #58a6ff; margin-bottom: 8px; }
+  .scalp-header b { color: #fff; font-size: 13px; }
+  .scalp-header .mute { margin-left: 12px; font-size: 11px; }
+  .scalp-stats {
+    display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 10px;
+  }
+  .stat-pill {
+    background: #161b22; border: 1px solid #30363d; border-radius: 5px;
+    padding: 5px 10px; font-size: 11.5px;
+  }
+  .stat-pill b { color: #c9d1d9; }
+  .scalp-trades { width: 100%; border-collapse: collapse; font-size: 11px; }
+  .scalp-trades th {
+    text-align: left; color: #6e7681; font-weight: 600;
+    padding: 4px 8px; border-bottom: 1px solid #30363d;
+  }
+  .scalp-trades td {
+    padding: 3px 8px; color: #c9d1d9; border-bottom: 1px solid #161b22;
+  }
+
+  .legend {
+    background: #161b22; border: 1px solid #30363d; border-radius: 6px;
+    padding: 10px 14px; margin-bottom: 16px; font-size: 11.5px; color: #8b949e;
+  }
+  .legend b { color: #c9d1d9; }
+  .legend .key { color: #f0883e; }
+  table { border-collapse: collapse; width: 100%; background: #0d1117; }
+  th {
+    background: #161b22; color: #58a6ff; text-align: right;
+    padding: 8px 10px; border-bottom: 1px solid #30363d;
+    font-weight: normal; font-size: 11px;
+    text-transform: uppercase; letter-spacing: 0.5px;
+    cursor: pointer; user-select: none; white-space: nowrap;
+  }
+  th.sortable:hover { color: #f0883e; }
+  th[title] { border-bottom: 1px dotted #58a6ff; }
+  th[title]:hover { border-bottom-color: #f0883e; }
+  th.left, td.left { text-align: left; }
+  td {
+    padding: 8px 10px; text-align: right;
+    border-bottom: 1px solid #21262d;
+    vertical-align: middle; white-space: nowrap;
+  }
+  tr:hover td { background: #161b22; }
+  td.market { font-weight: 500; color: #f5f2ec; max-width: 360px;
+              white-space: normal; line-height: 1.35; }
+  td.outcome { color: #f0883e; font-weight: bold; font-size: 13px; }
+  .match-badge { display:inline-block; margin-left:6px; padding:1px 6px; border-radius:9px;
+    background:#3fb950; color:#0d1117; font-size:10px; font-weight:700; vertical-align:middle; }
+  td.score { text-align: center; padding: 4px 10px; }
+  .score-cell {
+    display: inline-block; padding: 3px 9px; border-radius: 4px;
+    color: #fff; min-width: 36px; text-align: center; font-weight: bold;
+  }
+  .pos { color: #56d364; }
+  .neg { color: #f85149; }
+  .mute { color: #6e7681; }
+  .filters {
+    margin-bottom: 12px; display: flex; gap: 12px;
+    align-items: center; font-size: 11.5px; flex-wrap: wrap;
+  }
+  .filters input, .filters select {
+    background: #0d1117; color: #c9d1d9;
+    border: 1px solid #30363d; border-radius: 4px;
+    padding: 5px 8px; font-family: inherit; font-size: 11.5px;
+  }
+  .filters label { color: #8b949e; }
+  a { color: #58a6ff; text-decoration: none; }
+  a:hover { text-decoration: underline; }
+  /* Market title link styled as a tappable affordance — universal link
+     opens the Polymarket app on iOS/Android if installed, web fallback. */
+  a.market-link {
+    display: inline-flex; align-items: baseline; gap: 6px;
+    color: #f5f2ec; text-decoration: none;
+    border-bottom: 1px dashed #30363d;
+    padding: 2px 0;
+    transition: color 120ms ease, border-color 120ms ease;
+  }
+  a.market-link:hover,
+  a.market-link:focus {
+    color: #58a6ff; border-bottom-color: #58a6ff;
+    text-decoration: none;
+  }
+  a.market-link .open-arrow {
+    color: #58a6ff; font-size: 11px; flex-shrink: 0;
+    opacity: 0.7; transition: opacity 120ms ease, transform 120ms ease;
+  }
+  a.market-link:hover .open-arrow,
+  a.market-link:focus .open-arrow {
+    opacity: 1; transform: translate(1px, -1px);
+  }
+  /* Larger tap targets on touch devices — the whole title cell becomes
+     a comfortable hit area for opening the market in the app. */
+  @media (pointer: coarse) {
+    td.market { padding: 12px 10px; }
+    a.market-link { padding: 6px 0; min-height: 32px; }
+    a.market-link .open-arrow { font-size: 13px; }
+  }
+  .ratio-badge {
+    display: inline-block; padding: 1px 6px; border-radius: 3px;
+    font-size: 10px; margin-left: 6px;
+  }
+  .ratio-badge.big { background: #1a7f37; color: #fff; }
+  .ratio-badge.med { background: #9a6700; color: #fff; }
+  .ratio-badge.norm { background: #30363d; color: #c9d1d9; }
+  .status-badge {
+    display: inline-block; padding: 3px 9px; border-radius: 3px;
+    font-size: 10px; font-weight: bold; letter-spacing: 1px;
+    text-transform: uppercase; min-width: 56px; text-align: center;
+  }
+  .status-badge.active   { background: #1a7f37; color: #fff; }
+  .status-badge.partial  { background: #6e4500; color: #fff; }
+  .status-badge.resolved { background: #30363d; color: #8b949e; }
+  .status-badge.won      { background: #58a6ff; color: #0d1117; }
+  .status-badge.lost     { background: #5d2222; color: #f85149; }
+  .status-badge.ending   { background: #9a6700; color: #fff; }
+  .status-badge.favored  { background: #1f3858; color: #79c0ff; }
+  .status-badge.faded    { background: #3a1d1d; color: #f0883e; }
+  /* Per-row pill: ".us ✓" green when we matched directly, ".us search"
+     mute when we fall back to keyword search (no direct match). */
+  .us-pill {
+    display: inline-block; padding: 1px 6px; border-radius: 3px;
+    font-size: 9.5px; font-weight: 700; letter-spacing: 0.5px;
+    margin-left: 6px; vertical-align: middle;
+  }
+  .us-pill.direct { background: #1a7f37; color: #fff; }
+  .us-pill.search { background: #21262d; color: #8b949e; border: 1px solid #30363d; }
+  /* Per-row action buttons — copy title, jump to .com event for research. */
+  .row-actions { display: inline-flex; gap: 4px; margin-left: 8px; }
+  .row-actions button, .row-actions a.com-link {
+    background: #21262d; color: #8b949e; border: 1px solid #30363d;
+    border-radius: 3px; padding: 2px 6px; font-size: 10px;
+    font-family: inherit; cursor: pointer; text-decoration: none;
+    line-height: 1.4;
+  }
+  .row-actions button:hover, .row-actions a.com-link:hover {
+    color: #c9d1d9; border-color: #58a6ff;
+  }
+  .row-actions button.copied { color: #56d364; border-color: #1a7f37; }
+  .empty { text-align: center; padding: 40px; color: #6e7681; }
+</style>
+</head>
+<body>
+
+<h1>Polymarket Active Trades — Followed Leaderboard</h1>
+<div class="meta">
+  <button id="refreshBtn" type="button" style="background:#1f6feb;color:#fff;border:none;padding:4px 10px;border-radius:4px;cursor:pointer;font-size:12px;margin-right:8px;">⟳ Refresh live data</button>
+  Page built: <b>2026-11-12 11:29:08 PM</b> &middot;
+  Data: <b id="liveStatus" style="color:#56d364">live (from your browser)</b> &middot;
+  <b id="positionCount">0</b> positions across <b id="traderCount">11</b> followed trader(s) &middot;
+  <span id="filterCount">&mdash;</span> &middot;
+  Visits: <b id="visitCount">&mdash;</b> &middot;
+  <a href="https://clairmont425.github.io/catalyst-dashboard/" style="color:#58a6ff">Government Contracts →</a>
+</div>
+
+<div class="traders-bar"><div class="trader-pill"><b>kch123</b><span class="stat">Win: <span class="pos">57%</span> · 148 closed · ROI 16% · PnL $11751k</span></div><div class="trader-pill"><b>RN1</b><span class="stat">Win: <span class="neg">44%</span> · 190 closed · ROI -12% · PnL $9095k</span></div><div class="trader-pill"><b>swisstony</b><span class="stat">Win: <span class="mute">n/a</span> · 0 closed · ROI n/a · PnL $8920k</span></div><div class="trader-pill"><b>beachboy4</b><span class="stat">Win: <span class="pos">56%</span> · 117 closed · ROI 9% · PnL $5103k</span></div><div class="trader-pill"><b>GamblingIsAllYouNeed</b><span class="stat">Win: <span class="pos">58%</span> · 297 closed · ROI -20% · PnL $4841k</span></div><div class="trader-pill"><b>0x006cc834Cc092684F1B56626E23BEdB3835c16ea-1729683673397</b><span class="stat">Win: <span class="pos">58%</span> · 258 closed · ROI 55% · PnL $4559k</span></div><div class="trader-pill"><b>0x2a2C53bD278c04DA9962Fcf96490E17F3DfB9Bc1-1772479215461</b><span class="stat">Win: <span class="mute">51%</span> · 445 closed · ROI 8% · PnL $4227k</span></div><div class="trader-pill"><b>LaBradfordSmith22</b><span class="stat">Win: <span class="mute">48%</span> · 196 closed · ROI -7% · PnL $4010k</span></div><div class="trader-pill"><b>gmpm</b><span class="stat">Win: <span class="mute">55%</span> · 484 closed · ROI 1% · PnL $3623k</span></div><div class="trader-pill"><b>DrPufferfish</b><span class="stat">Win: <span class="mute">47%</span> · 613 closed · ROI 25% · PnL $3607k</span></div><div class="trader-pill"><b>GCottrell93</b><span class="stat">Win: <span class="pos">61%</span> · 28 closed · ROI 34% · PnL $3418k</span></div></div>
+
+<!-- ── BTC 5m Scalp Loop section (live trading widget) ─────────────────── -->
+<div class="scalp-widget" id="scalpWidget">
+<div class="scalp-card">
+  <div class="scalp-header">
+    <b>BTC 5m Scalp Loop</b>
+    <span class="mute">live trading — $5/window, TP $0.40, stop $0.15, trail to BE at +30%</span>
+  </div>
+  <div class="scalp-stats">
+    <div class="stat-pill"><span class="mute">Today P&amp;L:</span>
+      <b class="pos">$+0.00</b>
+    </div>
+    <div class="stat-pill"><span class="mute">Today trades:</span> <b>0</b></div>
+    <div class="stat-pill"><span class="mute">Win rate:</span> <b>0%</b></div>
+    <div class="stat-pill"><span class="mute">All-time real P&amp;L:</span>
+      <b class="neg">$-130.13</b>
+    </div>
+  </div>
+  <table class="scalp-trades">
+    <thead><tr><th>Time UTC</th><th>Side</th><th>Entry</th><th>Exit</th><th>Reason</th><th>P&amp;L</th></tr></thead>
+    <tbody><tr><td>2026-05-31 22:46:47</td><td>NO</td><td>0.200</td><td>0.010</td><td>trail_stop</td><td class="neg">$-2.47</td></tr><tr><td>2026-05-31 22:46:36</td><td>NO</td><td>0.200</td><td>0.010</td><td>tier1_scaleout</td><td class="neg">$-2.28</td></tr><tr><td>2026-05-26 08:47:46</td><td>YES</td><td>0.300</td><td>0.145</td><td>stop_loss @ 0.1450</td><td class="neg">$-4.83</td></tr><tr><td>2026-05-26 08:43:33</td><td>YES</td><td>0.300</td><td>0.125</td><td>stop_loss @ 0.1250</td><td class="neg">$-4.83</td></tr><tr><td>2026-05-26 08:32:14</td><td>YES</td><td>0.270</td><td>0.525</td><td>tp_hit</td><td class="neg">$-4.81</td></tr><tr><td>2026-05-26 08:27:37</td><td>NO</td><td>0.270</td><td>0.605</td><td>tp_hit</td><td class="neg">$-4.81</td></tr><tr><td>2026-05-26 08:24:25</td><td>YES</td><td>0.280</td><td>0.545</td><td>tp_hit</td><td class="neg">$-4.82</td></tr><tr><td>2026-05-26 08:16:05</td><td>YES</td><td>0.270</td><td>0.135</td><td>stop_loss @ 0.1350</td><td class="neg">$-4.81</td></tr><tr><td>2026-05-26 08:11:37</td><td>NO</td><td>0.310</td><td>0.135</td><td>stop_loss @ 0.1350</td><td class="neg">$-4.84</td></tr><tr><td>2026-05-26 07:56:29</td><td>YES</td><td>0.300</td><td>0.145</td><td>stop_loss @ 0.1450</td><td class="neg">$-4.83</td></tr><tr><td>2026-05-26 07:53:29</td><td>NO</td><td>0.290</td><td>0.085</td><td>stop_loss @ 0.0850</td><td class="neg">$-4.83</td></tr><tr><td>2026-05-26 07:46:31</td><td>NO</td><td>0.290</td><td>0.525</td><td>tp_hit</td><td class="neg">$-4.83</td></tr><tr><td>2026-05-26 07:41:11</td><td>NO</td><td>0.290</td><td>0.275</td><td>breakeven_stop</td><td class="neg">$-4.83</td></tr><tr><td>2026-05-26 07:37:19</td><td>YES</td><td>0.240</td><td>0.195</td><td>breakeven_stop</td><td class="neg">$-4.79</td></tr><tr><td>2026-05-26 07:32:37</td><td>YES</td><td>0.290</td><td>0.085</td><td>stop_loss @ 0.0850</td><td class="neg">$-4.83</td></tr><tr><td>2026-05-26 07:28:31</td><td>NO</td><td>0.300</td><td>0.515</td><td>tp_hit</td><td class="neg">$-4.83</td></tr><tr><td>2026-05-26 07:22:20</td><td>YES</td><td>0.300</td><td>0.135</td><td>stop_loss @ 0.1350</td><td class="neg">$-4.83</td></tr><tr><td>2026-05-26 07:17:21</td><td>YES</td><td>0.220</td><td>0.105</td><td>stop_loss @ 0.1050</td><td class="neg">$-4.77</td></tr><tr><td>2026-05-26 07:05:50</td><td>YES</td><td>0.240</td><td>0.175</td><td>breakeven_stop</td><td class="neg">$-4.79</td></tr><tr><td>2026-05-26 06:47:23</td><td>YES</td><td>0.290</td><td>0.285</td><td>breakeven_stop</td><td class="neg">$-4.83</td></tr></tbody>
+  </table>
+</div>
+</div>
+
+<div class="legend">
+  <b>What this is:</b> a live look at the open positions of Polymarket&#x2019;s most provably skilled
+  traders &mdash; only the wallets that clear a strict, rules-based quality gate. Nobody is hand-picked
+  or added because we &ldquo;like&rdquo; them; a wallet is in this list <em>only</em> because it passed every
+  check below, and it drops off automatically the moment it stops passing.<br><br>
+
+  <b>How we choose the leaders &mdash; the gate (a wallet must pass ALL three):</b>
+  <div style="margin:6px 0 6px 4px;">
+    <div style="margin-bottom:5px;"><span class="key">① Top of the money leaderboard</span>
+      &mdash; we start only from the <b>top 15 wallets on Polymarket&#x2019;s OVERALL monthly profit
+      leaderboard</b>.<br>
+      <i>Why:</i> these are real wallets putting real capital to work and winning at scale &mdash;
+      not anonymous or random accounts. It anchors the pool to people the market itself ranks at the top.</div>
+    <div style="margin-bottom:5px;"><span class="key">② Win rate &ge; 55%</span>
+      &mdash; measured across their <b>resolved (settled) positions</b>.<br>
+      <i>Why:</i> raw profit can come from a single giant lucky bet. A 55%+ hit rate is evidence of a
+      <b>repeatable edge</b> &mdash; they are right more often than they are wrong, market after market &mdash;
+      which is what makes a trader worth following rather than a one-time moonshot.</div>
+    <div style="margin-bottom:5px;"><span class="key">③ At least 20 resolved trades</span>
+      &mdash; that win rate must be drawn from <b>20+ markets that have actually settled</b>.<br>
+      <i>Why:</i> 3-for-3 is luck; 20+ closed positions make the win rate <b>statistically meaningful</b>,
+      so a short hot streak can&#x2019;t sneak a mediocre trader onto the list.</div>
+  </div>
+  We compute each wallet&#x2019;s win rate from its <b>last ~1,000 resolved trades</b> (wins &divide; settled),
+  so the number reflects <b>current</b> skill, not ancient history. The gate is re-checked periodically; any
+  wallet that slips below 55% (or whose track record thins out) is removed automatically.<br><br>
+
+  <b>How rows are ranked &mdash; composite score (0&ndash;100):</b> within the qualified traders, each open
+  position is scored by &mdash; trader win rate (0&ndash;30) + position size vs that trader&#x2019;s <em>own</em>
+  typical bet (0&ndash;25) + price room / upside left (0&ndash;15) + resolves within a tradeable window
+  (0&ndash;15) + entry timing &amp; P&amp;L state (0&ndash;15). Higher = a stronger &ldquo;proven trader, big
+  conviction, room to run&rdquo; setup.<br><br>
+
+  <b>Live &amp; on demand:</b> the data here is fetched <b>straight from Polymarket in your own browser</b>
+  when you hit <span class="key">&#x27F3; Refresh live data</span> &mdash; every position, price, and score is
+  recomputed on your device. Nothing is precomputed or polled on a paid server, so it costs nothing to host
+  and is always current the moment <em>you</em> ask for it.<br><br>
+
+  <b>What to copy:</b> top-ranked rows are the cleanest &ldquo;a proven trader bet bigger than usual on
+  something with room to run.&rdquo;<br>
+  <b>To find a trade:</b> click the market title to open it on Polymarket.com directly,
+  or hit <span class="key">📋</span> to copy the title for pasting into the Polymarket US app.
+  The <b>&ldquo;Polymarket US tradeable only&rdquo;</b> checkbox filters to markets with a confirmed
+  .us match &mdash; uncheck it to see every position followed traders hold on .com.<br>
+  <b>Status</b> &mdash;
+  <span class="key">ACTIVE</span> = fresh, normal-priced (best to copy);
+  <span class="key">FAVORED</span> / <span class="key">FADED</span> = price near 1 / 0 but event NOT decided
+    (e.g., NBA Finals heavy favorite — almost no upside left to copy);
+  <span class="key">PARTIAL</span> = trader has scaled out;
+  <span class="key">RESOLVED</span> / <span class="key">WON</span> / <span class="key">LOST</span> = market actually decided.
+  Default filter shows only ACTIVE; uncheck to see everything.<br>
+  <b>vs Typical</b> = position size as a multiple of the trader's median open-position size.
+  <span class="key">3x+ typical = real conviction.</span><br>
+  <b>&#x2605; Matching trades across leaders</b> &mdash; tick this to show only bets where
+  <b>two or more</b> of our gate-qualified leaders hold the <b>same market AND the same side</b>.
+  A <span class="match-badge">&#x2605; N</span> badge on a row means N leaders are on that exact bet.
+  When multiple independent, proven traders converge on the same position, that&#x2019;s the
+  strongest signal on the board.
+</div>
+
+<div class="filters">
+  <label>Search:
+    <input type="text" id="search" placeholder="market, outcome, trader..." style="width:240px">
+  </label>
+  <label>Min score:
+    <input type="number" id="minScore" value="0" min="0" max="100" style="width:60px">
+  </label>
+  <label>Min size $:
+    <input type="number" id="minSize" value="0" min="0" style="width:80px">
+  </label>
+  <label>Trader:
+    <select id="traderFilter"><option value="">all</option><option value="kch123">kch123</option><option value="RN1">RN1</option><option value="swisstony">swisstony</option><option value="beachboy4">beachboy4</option><option value="GamblingIsAllYouNeed">GamblingIsAllYouNeed</option><option value="0x006cc834Cc092684F1B56626E23BEdB3835c16ea-1729683673397">0x006cc834Cc092684F1B56626E23BEdB3835c16ea-1729683673397</option><option value="0x2a2C53bD278c04DA9962Fcf96490E17F3DfB9Bc1-1772479215461">0x2a2C53bD278c04DA9962Fcf96490E17F3DfB9Bc1-1772479215461</option><option value="LaBradfordSmith22">LaBradfordSmith22</option><option value="gmpm">gmpm</option><option value="DrPufferfish">DrPufferfish</option><option value="GCottrell93">GCottrell93</option></select>
+  </label>
+  <label style="display:inline-flex;align-items:center;gap:6px;">
+    <input type="checkbox" id="usOnly"> Polymarket US tradeable only
+  </label>
+  <label style="display:inline-flex;align-items:center;gap:6px;">
+    <input type="checkbox" id="hidePartial" checked> Show only fresh ACTIVE positions
+  </label>
+  <label style="display:inline-flex;align-items:center;gap:6px;" title="Show only bets where 2 or more of our followed leaders hold the same market AND the same side — cross-leader consensus.">
+    <input type="checkbox" id="matchOnly" checked> ★ Matching trades across leaders
+  </label>
+</div>
+
+<table id="positions">
+  <thead>
+    <tr>
+      <th class="sortable left" data-key="status" title="ACTIVE = market still open. WON/LOST = resolved. ENDING = past end date but price not yet pinned.">Status</th>
+      <th class="sortable left" data-key="market_title" title="Polymarket market title — click row link to open">Market</th>
+      <th class="sortable left" data-key="outcome" title="Side they bet on">Side</th>
+      <th class="sortable left" data-key="trader_name" title="Which followed trader holds this position">Trader</th>
+      <th class="sortable" data-key="score" title="0-100. Composite of win rate, size-vs-typical, price room, time to resolve, P&L state.">Score</th>
+      <th class="sortable" data-key="_leaders" title="How many of our followed leaders hold this EXACT bet (same market + same side). 2+ = consensus. Click to sort by most-matched.">Leaders</th>
+      <th class="sortable" data-key="entry_price" title="Trader's average entry price">Entry</th>
+      <th class="sortable" data-key="current_price" title="Current market price">Now</th>
+      <th class="sortable" data-key="size_usd" title="Current USD value of the trader's position">Size $</th>
+      <th class="sortable" data-key="size_vs_typical" title="Size as multiple of this trader's median open-position size. >2x = high conviction.">vs Typical</th>
+      <th class="sortable" data-key="trader_pnl_pct" title="Trader's unrealized P&L on this position">PnL %</th>
+      <th class="sortable" data-key="days_to_resolve" title="Days until market resolves">Resolves</th>
+    </tr>
+  </thead>
+  <tbody id="rowsBody"></tbody>
+</table>
+
+<div class="empty">No active positions found. Wait for the leaderboard notifier to take its next snapshot.</div>
+
+<script>
+let ROWS = [];
+const FOLLOWLIST = [{"wallet": "0x6a72f61820b26b1fe4d956e17b6dc2a1ea3033ee", "name": "kch123", "win_rate": 0.5743, "closed": 148, "roi": 0.1638, "pnl": 11750628.8679985}, {"wallet": "0x2005d16a84ceefa912d4e380cd32e7ff827875ea", "name": "RN1", "win_rate": 0.4421, "closed": 190, "roi": -0.1227, "pnl": 9095427.152831016}, {"wallet": "0x204f72f35326db932158cba6adff0b9a1da95e14", "name": "swisstony", "win_rate": 0.0, "closed": 0, "roi": 0.0, "pnl": 8920054.859065464}, {"wallet": "0xc2e7800b5af46e6093872b177b7a5e7f0563be51", "name": "beachboy4", "win_rate": 0.5556, "closed": 117, "roi": 0.0858, "pnl": 5103013.884809761}, {"wallet": "0x507e52ef684ca2dd91f90a9d26d149dd3288beae", "name": "GamblingIsAllYouNeed", "win_rate": 0.5758, "closed": 297, "roi": -0.1969, "pnl": 4840848.244244736}, {"wallet": "0x006cc834cc092684f1b56626e23bedb3835c16ea", "name": "0x006cc834Cc092684F1B56626E23BEdB3835c16ea-1729683673397", "win_rate": 0.5775, "closed": 258, "roi": 0.5493, "pnl": 4559118.287607442}, {"wallet": "0x2a2c53bd278c04da9962fcf96490e17f3dfb9bc1", "name": "0x2a2C53bD278c04DA9962Fcf96490E17F3DfB9Bc1-1772479215461", "win_rate": 0.5079, "closed": 445, "roi": 0.0799, "pnl": 4227275.815371339}, {"wallet": "0x9495425feeb0c250accb89275c97587011b19a27", "name": "LaBradfordSmith22", "win_rate": 0.4847, "closed": 196, "roi": -0.0691, "pnl": 4010289.4066528794}, {"wallet": "0x14964aefa2cd7caff7878b3820a690a03c5aa429", "name": "gmpm", "win_rate": 0.5496, "closed": 484, "roi": 0.0105, "pnl": 3623431.799280706}, {"wallet": "0xdb27bf2ac5d428a9c63dbc914611036855a6c56e", "name": "DrPufferfish", "win_rate": 0.4698, "closed": 613, "roi": 0.2475, "pnl": 3606574.802449612}, {"wallet": "0x94a428cfa4f84b264e01f70d93d02bc96cb36356", "name": "GCottrell93", "win_rate": 0.6071, "closed": 28, "roi": 0.3417, "pnl": 3418434.8845850965}];  // [{wallet, name, win_rate, ...}]
+
+function fmtMoney(v) {
+  if (v == null) return '<span class="mute">--</span>';
+  if (v >= 1000) return '$' + (v/1000).toFixed(1) + 'k';
+  return '$' + v.toFixed(0);
+}
+function fmtPct(v) {
+  if (v == null) return '<span class="mute">--</span>';
+  const cls = v >= 0 ? 'pos' : 'neg';
+  const sign = v >= 0 ? '+' : '';
+  return '<span class="' + cls + '">' + sign + v.toFixed(1) + '%</span>';
+}
+function fmtCents(v) {
+  if (v == null || v === 0) return '<span class="mute">--</span>';
+  return Math.round(v * 100) + '¢';
+}
+function fmtRatio(v) {
+  if (v == null) return '<span class="mute">--</span>';
+  let cls = 'norm';
+  if (v >= 3) cls = 'big';
+  else if (v >= 1.5) cls = 'med';
+  return '<span class="ratio-badge ' + cls + '">' + v.toFixed(1) + 'x</span>';
+}
+function fmtDays(v) {
+  if (v == null) return '<span class="mute">--</span>';
+  if (v < 0) return '<span class="mute">resolved</span>';
+  if (v < 1) return '<span class="pos">' + (v*24).toFixed(0) + 'h</span>';
+  if (v < 30) return v.toFixed(0) + 'd';
+  return (v/30).toFixed(1) + 'mo';
+}
+function scoreBg(s) {
+  if (s >= 75) return '#1a7f37';
+  if (s >= 60) return '#388f3a';
+  if (s >= 45) return '#9a6700';
+  if (s >= 30) return '#bb6f00';
+  return '#5d2222';
+}
+
+function renderRows(rows) {
+  if (!rows.length) {
+    return '<tr><td colspan="12" class="empty">No positions match filters.</td></tr>';
+  }
+  return rows.map(r => {
+    const escTitle = (r.market_title || '').replace(/[<>&"']/g, c =>
+      ({'<':'&lt;','>':'&gt;','&':'&amp;','"':'&quot;',"'":'&#39;'}[c]));
+    const wrLabel = r.trader_win_rate != null
+      ? Math.round(r.trader_win_rate * 100) + '%'
+      : 'n/a';
+    const statusCls = (r.status || 'active').toLowerCase();
+    return `
+    <tr>
+      <td class="left"><span class="status-badge ${statusCls}">${r.status || 'ACTIVE'}</span></td>
+      <td class="market left">
+        <a class="market-link" href="${r.com_event_url || r.url}" target="_blank" rel="noopener noreferrer" title="Open this market on Polymarket.com">
+          <span>${escTitle}</span>
+          <span class="open-arrow" aria-hidden="true">↗</span>
+        </a>
+        <span class="row-actions">
+          <button type="button" data-copy="${escTitle}" title="Copy title to clipboard">📋</button>
+        </span>
+      </td>
+      <td class="outcome left">${r.outcome}</td>
+      <td class="left">${r.trader_name} <span class="mute">(${wrLabel})</span></td>
+      <td class="score"><span class="score-cell" style="background:${scoreBg(r.score)}">${r.score.toFixed(0)}</span></td>
+      <td class="leaders-cell">${r._match ? `<span class="match-badge" title="${r._leaders} leaders hold this exact bet">★ ${r._leaders}</span>` : `<span class="mute">${r._leaders}</span>`}</td>
+      <td>${fmtCents(r.entry_price)}</td>
+      <td>${fmtCents(r.current_price)}</td>
+      <td>${fmtMoney(r.size_usd)}</td>
+      <td>${fmtRatio(r.size_vs_typical)}</td>
+      <td>${fmtPct(r.trader_pnl_pct)}</td>
+      <td>${fmtDays(r.days_to_resolve)}</td>
+    </tr>`;
+  }).join('');
+}
+
+// Tag every row with how many DISTINCT followed traders hold the same market +
+// same side (consensus). key = condition_id (fallback market title) + outcome.
+// r._leaders = count of leaders on that exact bet; r._match = 2+ leaders agree.
+function computeMatches() {
+  const byKey = {};
+  for (const r of ROWS) {
+    const key = (r.condition_id || r.market_title || '') + '||' + (r.outcome || '');
+    (byKey[key] = byKey[key] || new Set()).add(r.trader_name);
+    r._mkey = key;
+  }
+  for (const r of ROWS) {
+    r._leaders = byKey[r._mkey] ? byKey[r._mkey].size : 1;
+    r._match = r._leaders >= 2;
+  }
+}
+
+function applyFilters() {
+  computeMatches();
+  const q = document.getElementById('search').value.toLowerCase();
+  const minScore = parseFloat(document.getElementById('minScore').value) || 0;
+  const minSize  = parseFloat(document.getElementById('minSize').value) || 0;
+  const trader   = document.getElementById('traderFilter').value;
+  const usOnly      = document.getElementById('usOnly').checked;
+  const hidePartial = document.getElementById('hidePartial').checked;
+  const matchOnly   = document.getElementById('matchOnly')?.checked;
+  const filtered = ROWS.filter(r => {
+    if (matchOnly && !r._match) return false;
+    if (usOnly && r.us_link_kind !== 'direct') return false;
+    if (hidePartial && r.status !== 'ACTIVE') return false;
+    if (r.score < minScore) return false;
+    if (r.size_usd < minSize) return false;
+    if (trader && r.trader_name !== trader) return false;
+    if (q) {
+      const hay = (r.market_title + ' ' + r.outcome + ' ' + r.trader_name).toLowerCase();
+      if (!hay.includes(q)) return false;
+    }
+    return true;
+  });
+  // NOTE: ordering is owned entirely by sortRows()/sortBy() (the column the user
+  // clicked). We do NOT re-sort here — doing so used to override the chosen sort
+  // whenever "Matching trades" was on, which made the Score column look broken.
+  document.getElementById('rowsBody').innerHTML = renderRows(filtered);
+  // Surface the filter ratio so empty results don't look broken.
+  const meta = document.getElementById('filterCount');
+  if (meta) {
+    const matchCount = ROWS.filter(r => r._match).length;
+    meta.textContent = `${filtered.length} / ${ROWS.length} shown`
+      + (matchCount ? ` · ${matchCount} consensus picks` : '');
+  }
+}
+
+// Text columns sort A->Z on first click; numeric columns sort high->low first.
+const TEXT_SORT_KEYS = new Set(['status', 'market_title', 'outcome', 'trader_name']);
+let sortKey = '_leaders';   // default view: most-matched (consensus) on top
+let sortDir = -1;
+function sortRows() {
+  if (!sortKey) return;
+  computeMatches();          // ensure _leaders is fresh before sorting on it
+  ROWS.sort((a, b) => {
+    const av = a[sortKey], bv = b[sortKey];
+    if (av == null && bv == null) return 0;
+    if (av == null) return 1;
+    if (bv == null) return -1;
+    if (typeof av === 'string') return sortDir * av.localeCompare(bv);
+    return sortDir * (av - bv);
+  });
+}
+function sortBy(key) {
+  if (sortKey === key) {
+    sortDir = -sortDir;                                  // same column: flip direction
+  } else {
+    sortKey = key;
+    sortDir = TEXT_SORT_KEYS.has(key) ? 1 : -1;          // new column: sensible default
+  }
+  sortRows();
+  updateSortArrows();
+  applyFilters();
+}
+
+// Show a ▼/▲ on the active column so the sort state is obvious.
+function updateSortArrows() {
+  document.querySelectorAll('th.sortable').forEach(th => {
+    if (th.dataset.label === undefined) th.dataset.label = th.textContent.trim();
+    const base = th.dataset.label;
+    th.textContent = (th.dataset.key === sortKey)
+      ? base + (sortDir < 0 ? '  ▼' : '  ▲')
+      : base;
+  });
+}
+
+document.querySelectorAll('th.sortable').forEach(th => {
+  th.addEventListener('click', () => sortBy(th.dataset.key));
+});
+['search', 'minScore', 'minSize', 'traderFilter', 'usOnly', 'hidePartial', 'matchOnly'].forEach(id => {
+  const el = document.getElementById(id);
+  if (!el) return;
+  el.addEventListener('input', applyFilters);
+  el.addEventListener('change', applyFilters);
+});
+
+// Copy-title button: paste into your app's search to find the market.
+document.addEventListener('click', async (e) => {
+  const btn = e.target.closest('button[data-copy]');
+  if (!btn) return;
+  try {
+    await navigator.clipboard.writeText(btn.dataset.copy);
+    const orig = btn.textContent;
+    btn.textContent = '✓ copied';
+    btn.classList.add('copied');
+    setTimeout(() => { btn.textContent = orig; btn.classList.remove('copied'); }, 1400);
+  } catch (err) {
+    btn.textContent = '✗';
+    setTimeout(() => { btn.textContent = '📋'; }, 1400);
+  }
+});
+
+// ── Live refresh: fetch each follower's positions directly from Polymarket ─
+// data-api in the visitor's browser, recompute rows, re-render. Costs nothing
+// to the dashboard host. ~11 small JSON fetches per refresh.
+async function refreshLiveData(options) {
+  const opts = options || {};
+  const status = document.getElementById('liveStatus');
+  const refreshBtn = document.getElementById('refreshBtn');
+  if (status) { status.textContent = '↻ fetching…'; status.style.color = '#bc8cff'; }
+  if (refreshBtn) refreshBtn.disabled = true;
+  const startedAt = Date.now();
+  try {
+    const traders = (FOLLOWLIST || []).filter(t => t && t.wallet);
+    // Parallel fetch
+    const results = await Promise.all(traders.map(async t => {
+      try {
+        const r = await fetch(`https://data-api.polymarket.com/positions?user=${t.wallet}&limit=500`, {cache:'no-store'});
+        if (!r.ok) return {trader: t, positions: []};
+        const positions = await r.json();
+        return {trader: t, positions: Array.isArray(positions) ? positions : (positions.positions || [])};
+      } catch (e) { return {trader: t, positions: []}; }
+    }));
+    const now = Date.now() / 1000;
+    const newRows = [];
+    for (const {trader, positions} of results) {
+      // Median size for ratio (a trader's typical bet)
+      const sizes = positions
+        .map(p => parseFloat(p.currentValue) || 0)
+        .filter(v => v > 1.0).sort((a, b) => a - b);
+      const typical = sizes.length
+        ? sizes[Math.floor(sizes.length / 2)] || 1
+        : 1;
+      for (const p of positions) {
+        const cv = parseFloat(p.currentValue) || 0;
+        const cp = parseFloat(p.curPrice) || 0;
+        const es = p.eventSlug || '';
+        // Filter out dust + likely-resolved positions
+        if (cv < 1.0) continue;
+        if (cp <= 0.001 || cp >= 0.999) continue;
+        let endTs = 0;
+        const endStr = p.endDate || '';
+        if (endStr) {
+          try { endTs = Date.parse(endStr) / 1000; } catch {}
+        }
+        const daysToResolve = endTs ? (endTs - now) / 86400 : null;
+        if (daysToResolve != null && daysToResolve < 0) continue;
+        // Conviction score (simplified client-side version)
+        let score = 0;
+        const wr = trader.win_rate;
+        if (wr != null) score += Math.min(30, Math.max(0, (wr - 0.5) * 100));
+        const sizeRatio = typical > 0 ? cv / typical : 1;
+        score += Math.min(25, sizeRatio * 8);
+        const priceRoom = 1 - 2 * Math.abs(cp - 0.5);
+        score += priceRoom * 15;
+        if (daysToResolve != null) {
+          if (daysToResolve >= 1 && daysToResolve <= 30) score += 15;
+          else if (daysToResolve > 30 && daysToResolve <= 90) score += 10;
+          else if (daysToResolve < 1) score += 5;
+        }
+        const pnlPct = parseFloat(p.percentPnl) || 0;
+        if (pnlPct > 0 && pnlPct < 50) score += 15;
+        else if (pnlPct >= 50) score += 8;
+        newRows.push({
+          status: 'ACTIVE',
+          market_title: (p.title || '').slice(0, 80),
+          outcome: p.outcome || '?',
+          trader_name: trader.name || (trader.wallet || '').slice(0, 10),
+          trader_win_rate: wr,
+          trader_pnl_pct: pnlPct,
+          score: Math.max(0, Math.min(100, score)),
+          entry_price: parseFloat(p.avgPrice) || cp,
+          current_price: cp,
+          size_usd: cv,
+          size_vs_typical: sizeRatio,
+          days_to_resolve: daysToResolve,
+          com_event_url: es ? `https://polymarket.com/event/${es}` : '#',
+          url: es ? `https://polymarket.com/event/${es}` : '#',
+          us_link_kind: 'direct',
+          eventSlug: es,
+          conditionId: p.conditionId || '',
+        });
+      }
+    }
+    ROWS = newRows;
+    sortRows();        // keep the user's chosen column sort after a live refresh
+    // Refresh trader filter options
+    const traderFilter = document.getElementById('traderFilter');
+    if (traderFilter) {
+      const seenTraders = new Set(newRows.map(r => r.trader_name));
+      const current = traderFilter.value;
+      traderFilter.innerHTML = '<option value="">All traders</option>' +
+        Array.from(seenTraders).sort().map(n => `<option value="${n}">${n}</option>`).join('');
+      traderFilter.value = current;
+    }
+    applyFilters();
+    const elapsed = Math.round((Date.now() - startedAt) / 100) / 10;
+    const ts = new Date().toLocaleTimeString();
+    if (status) {
+      status.textContent = `live as of ${ts} (${elapsed}s, ${newRows.length} positions)`;
+      status.style.color = '#56d364';
+    }
+    document.getElementById('positionCount').textContent = newRows.length;
+    document.getElementById('traderCount').textContent = traders.length;
+  } catch (err) {
+    if (status) {
+      status.textContent = '⚠ refresh failed: ' + err.message;
+      status.style.color = '#f85149';
+    }
+  } finally {
+    if (refreshBtn) refreshBtn.disabled = false;
+  }
+}
+document.getElementById('refreshBtn')?.addEventListener('click', () => refreshLiveData());
+// Auto-fire on page load so visitors always see fresh data
+setTimeout(() => refreshLiveData({initial: true}), 300);
+
+// ── Visit counter ──────────────────────────────────────────────────────────
+// REAL GLOBAL count via Abacus (abacus.jasoncameron.dev) — free, no signup,
+// CORS-enabled. Abacus increments server-side, so this is the true total across
+// ALL visitors, not just this device. Still zero host cost (the visitor's
+// browser makes the call). 30-min per-device gate prevents the same tab / rapid
+// reloads from inflating the global count; on a gated load we just READ it.
+(async function visitCounter() {
+  const NS = "clairmont425-dashboards";
+  const KEY = "polymarket-v2";
+  const GATE = "abacus_gate_" + KEY;
+  const now = Date.now();
+  const last = parseInt(localStorage.getItem(GATE) || "0", 10);
+  const el = document.getElementById("visitCount");
+  const base = "https://abacus.jasoncameron.dev";
+  try {
+    let url;
+    if (!last || now - last > 1800000) {          // 30 min: count this visit once
+      url = `${base}/hit/${NS}/${KEY}`;
+      localStorage.setItem(GATE, String(now));
+    } else {
+      url = `${base}/get/${NS}/${KEY}`;           // already counted recently: just read
+    }
+    const r = await fetch(url, { cache: "no-store" });
+    const j = await r.json();
+    if (el && j && typeof j.value === "number") el.textContent = j.value.toLocaleString();
+    else if (el) el.textContent = "—";
+  } catch (e) {
+    if (el) el.textContent = "—";
+  }
+})();
+
+sortRows();           // apply the default sort (most-matched first) on first paint
+updateSortArrows();   // show the ▼/▲ on the active sort column
+applyFilters();
+
+// ── Self-update: stale open tabs reload themselves when a new build ships ────
+// Checks the live build-stamp every 8 min (one small static fetch to GitHub
+// Pages — NOT the Polymarket API, so it costs nothing and doesn't touch live
+// data). Reloads ONLY when the deployed version actually differs from this one.
+(function autoUpdate() {
+  const mine = (document.querySelector('meta[name="build-stamp"]') || {}).content || '';
+  if (!mine) return;
+  setInterval(async () => {
+    try {
+      const html = await (await fetch(location.pathname + '?v=' + Date.now(), { cache: 'no-store' })).text();
+      const m = html.match(/name="build-stamp" content="([^"]*)"/);
+      if (m && m[1] && m[1] !== mine) location.reload();
+    } catch (e) { /* offline / transient — try again next interval */ }
+  }, 8 * 60 * 1000);
+})();
+</script>
+</body>
+</html>
