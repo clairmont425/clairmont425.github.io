@@ -1290,7 +1290,7 @@ tr.hidden{display:none}
     </nav>
     <div class="live-indicator">
       <span class="led"></span>
-      <span>2026-11-28 07:27 UTC</span>
+      <span>2026-11-28 08:04 UTC</span>
     </div>
   </div>
 </header>
@@ -1475,7 +1475,7 @@ the Polymarket price is what you would pay on Polymarket.us. Tap a pick to open 
   <span class="us-count mono"><strong>33</strong> games · <strong>66</strong> sides ·
   <strong class="sgn-pos">33</strong> with positive edge
   <span class="dim">· 32 sportsbook-priced, 34 record model</span></span>
-  <span class="us-fresh mono small fresh-aging" title="Scan time 2026-11-28 06:50 UTC">last scan 37m ago</span>
+  <span class="us-fresh mono small fresh-aging" title="Scan time 2026-11-28 06:50 UTC">last scan 1h ago</span>
 </div>
 
 <div class="us-filters">
@@ -1522,10 +1522,52 @@ the Polymarket price is what you would pay on Polymarket.us. Tap a pick to open 
   election"); if all the YES prices add up to less than $1, buying one of each pays $1 for less than $1.
   <b>Parity:</b> a single yes/no market where YES + NO costs less than $1.
   We only list a hit when the profit beats a 1.0% buffer for fees and slippage.</p>
-  <div class="venue-filter" role="group" aria-label="Venue"><div class="venue-filter-label mono">Venue:</div><button class="venue-chip active" data-venue="all" type="button" onclick="setStratVenue('arb','all')">ALL (0)</button><button class="venue-chip" data-venue="us" type="button" onclick="setStratVenue('arb','us')">POLYMARKET.US</button><button class="venue-chip" data-venue="com" type="button" onclick="setStratVenue('arb','com')">POLYMARKET.COM (0)</button></div>
+  <div class="venue-filter" role="group" aria-label="Venue"><div class="venue-filter-label mono">Venue:</div><button class="venue-chip active" data-venue="all" type="button" onclick="setStratVenue('arb','all')">ALL (0)</button><button class="venue-chip" data-venue="us" type="button" onclick="setStratVenue('arb','us')">POLYMARKET.US (0)</button><button class="venue-chip" data-venue="com" type="button" onclick="setStratVenue('arb','com')">POLYMARKET.COM (0)</button></div>
   <div class="venue-pane" data-venue="us">
     <h3 class="section-title serif">Polymarket.us</h3>
-    <div class="not-scanned"><div class="ns-title">Not scanned yet</div><p>No structural-arbitrage scan runs on Polymarket.us yet. Results will appear here once one does.</p></div>
+    
+
+<section class="panel-head">
+  <div class="panel-stats">
+    <div class="stat">
+      <span class="stat-label">EVENTS SCANNED</span>
+      <span class="stat-value mono">0</span>
+    </div>
+    <div class="stat">
+      <span class="stat-label">NEG-RISK EVENTS</span>
+      <span class="stat-value mono">0</span>
+    </div>
+    <div class="stat">
+      <span class="stat-label">CONFIRMED ARBS</span>
+      <span class="stat-value mono amber">0</span>
+    </div>
+    <div class="stat">
+      <span class="stat-label">EDGE BUFFER</span>
+      <span class="stat-value mono">0.0%</span>
+    </div>
+    <div class="stat">
+      <span class="stat-label">GENERATED</span>
+      <span class="stat-value mono">2026-11-28 07:45Z</span>
+    </div>
+  </div>
+  <p class="panel-note">
+    <strong class="serif">Scope:</strong> Polymarket.us structural arbitrage.
+    Neg-risk baskets (prices must sum to $1) + binary YES+NO parity, confirmed
+    against live CLOB depth with a 0.0% fee/slippage buffer.
+    Only market-neutral opportunities are shown — not value bets.
+  </p>
+</section>
+<table class="data">
+  <thead><tr>
+    <th>Kind</th>
+    <th>Event</th>
+    <th class="num">Σ ask</th>
+    <th class="num">Σ bid</th>
+    <th class="num">Edge</th>
+  </tr></thead>
+  <tbody><tr><td colspan="5" class="empty-row">No arbs survived the fee buffer. Markets efficient at the top. Scanner keeps running — mispricings on low-liquidity markets usually appear briefly.</td></tr></tbody>
+</table>
+
   </div>
   <div class="venue-pane" data-venue="com">
     <h3 class="section-title serif">Polymarket.com</h3>
@@ -1635,7 +1677,7 @@ the Polymarket price is what you would pay on Polymarket.us. Tap a pick to open 
 </div>
 
 <div class="opp-scoreboard-wrap">
-  <section class="scoreboard"><div class="sb-head"><span class="sb-title serif">Strategy scoreboard</span><span class="sb-sub mono">PAPER only · nothing here has used real money · read from the ledgers 2026-11-28 07:27 UTC</span></div><p class="us-intro">Every paper strategy we run, side by side. The first rows split the paper bets above by where their fair price came from; the variant and shadow rows test other prices or looser rules on the same scan. A strategy needs about 30 settled bets before its record means much.</p><table class="data sb-table"><thead><tr><th>Strategy</th><th>Status</th><th>Record (W–L)</th><th class="num">P&amp;L</th><th class="num">ROI</th><th class="num">Settled</th></tr></thead><tbody><tr><td class="sb-name"><strong>Moneyline · DK reference</strong><div class="sb-note">With a DK reference, edges run ~1–2pp and EV is negative after fees, so few or no bets open.</div></td><td data-label="Status"><span class="sb-status sb-unproven">Unproven · needs ~30</span></td><td class="mono" data-label="Record">0–0 · 1 open</td><td class="mono num " data-label="P&amp;L">—</td><td class="mono num" data-label="ROI">—</td><td class="mono num" data-label="Settled">0</td></tr><tr><td class="sb-name"><strong>Moneyline · Record model (no book posted)</strong><div class="sb-note">Backup model (team records + injuries), used before DK posts a game.</div></td><td data-label="Status"><span class="sb-status sb-unproven">Unproven · needs ~30</span></td><td class="mono" data-label="Record">0–0 · 12 open</td><td class="mono num " data-label="P&amp;L">—</td><td class="mono num" data-label="ROI">—</td><td class="mono num" data-label="Settled">0</td></tr><tr><td class="sb-name"><strong>Moneyline · source unknown</strong><div class="sb-note">The 11-25 batch. Its scan files were overwritten, so the source can&#x27;t be proven.</div></td><td data-label="Status"><span class="sb-status sb-unproven">Unproven · needs ~30</span></td><td class="mono" data-label="Record">6–0</td><td class="mono num pos" data-label="P&amp;L">+$475.47</td><td class="mono num" data-label="ROI">+79.2%</td><td class="mono num" data-label="Settled">6</td></tr><tr><td class="sb-name"><strong>Moneyline · Strength model (variant)</strong><div class="sb-note">Win odds from the upgraded strength projection (SRS, injuries, rest, home/road, DK blend). Same gates as the original. Started 2026-11-27.</div></td><td data-label="Status"><span class="sb-status sb-unproven">Unproven · needs ~30</span></td><td class="mono" data-label="Record">0–0 · 27 open</td><td class="mono num " data-label="P&amp;L">—</td><td class="mono num" data-label="ROI">—</td><td class="mono num" data-label="Settled">0</td></tr><tr><td class="sb-name"><strong>Moneyline · Wide gate (variant)</strong><div class="sb-note">The original formula with looser gates (EV ≥ 0.5%, edge ≥ 1pp) for more bets. Started 2026-11-27.</div></td><td data-label="Status"><span class="sb-status sb-unproven">Unproven · needs ~30</span></td><td class="mono" data-label="Record">0–0 · 16 open</td><td class="mono num " data-label="P&amp;L">—</td><td class="mono num" data-label="ROI">—</td><td class="mono num" data-label="Settled">0</td></tr><tr><td class="sb-name"><strong>Moneyline · Record model only (silent shadow)</strong><div class="sb-note">Always prices with the record + injury model, even when a sportsbook line exists, so the record model keeps its own track record. Same gates as the original. No alerts. Started 2026-11-27.</div></td><td data-label="Status"><span class="sb-status sb-unproven">Starts next refresh</span></td><td class="mono" data-label="Record">0–0</td><td class="mono num " data-label="P&amp;L">—</td><td class="mono num" data-label="ROI">—</td><td class="mono num" data-label="Settled">0</td></tr><tr><td class="sb-name"><strong>Spread · DK-line model (NBA + NFL)</strong><div class="sb-note">Prices Polymarket spreads off DraftKings&#x27; actual spread line (not the moneyline). Gate: edge ≥ 3pp and EV ≥ 2%. Started 2026-11-27.</div></td><td data-label="Status"><span class="sb-status sb-unproven">Unproven · needs ~30</span></td><td class="mono" data-label="Record">0–0 · 2 open</td><td class="mono num " data-label="P&amp;L">—</td><td class="mono num" data-label="ROI">—</td><td class="mono num" data-label="Settled">0</td></tr></tbody></table></section>
+  <section class="scoreboard"><div class="sb-head"><span class="sb-title serif">Strategy scoreboard</span><span class="sb-sub mono">PAPER only · nothing here has used real money · read from the ledgers 2026-11-28 08:04 UTC</span></div><p class="us-intro">Every paper strategy we run, side by side. The first rows split the paper bets above by where their fair price came from; the variant and shadow rows test other prices or looser rules on the same scan. A strategy needs about 30 settled bets before its record means much.</p><table class="data sb-table"><thead><tr><th>Strategy</th><th>Status</th><th>Record (W–L)</th><th class="num">P&amp;L</th><th class="num">ROI</th><th class="num">Settled</th></tr></thead><tbody><tr><td class="sb-name"><strong>Moneyline · DK reference</strong><div class="sb-note">With a DK reference, edges run ~1–2pp and EV is negative after fees, so few or no bets open.</div></td><td data-label="Status"><span class="sb-status sb-unproven">Unproven · needs ~30</span></td><td class="mono" data-label="Record">0–0 · 1 open</td><td class="mono num " data-label="P&amp;L">—</td><td class="mono num" data-label="ROI">—</td><td class="mono num" data-label="Settled">0</td></tr><tr><td class="sb-name"><strong>Moneyline · Record model (no book posted)</strong><div class="sb-note">Backup model (team records + injuries), used before DK posts a game.</div></td><td data-label="Status"><span class="sb-status sb-unproven">Unproven · needs ~30</span></td><td class="mono" data-label="Record">0–0 · 12 open</td><td class="mono num " data-label="P&amp;L">—</td><td class="mono num" data-label="ROI">—</td><td class="mono num" data-label="Settled">0</td></tr><tr><td class="sb-name"><strong>Moneyline · source unknown</strong><div class="sb-note">The 11-25 batch. Its scan files were overwritten, so the source can&#x27;t be proven.</div></td><td data-label="Status"><span class="sb-status sb-unproven">Unproven · needs ~30</span></td><td class="mono" data-label="Record">6–0</td><td class="mono num pos" data-label="P&amp;L">+$475.47</td><td class="mono num" data-label="ROI">+79.2%</td><td class="mono num" data-label="Settled">6</td></tr><tr><td class="sb-name"><strong>Moneyline · Strength model (variant)</strong><div class="sb-note">Win odds from the upgraded strength projection (SRS, injuries, rest, home/road, DK blend). Same gates as the original. Started 2026-11-27.</div></td><td data-label="Status"><span class="sb-status sb-unproven">Unproven · needs ~30</span></td><td class="mono" data-label="Record">0–0 · 27 open</td><td class="mono num " data-label="P&amp;L">—</td><td class="mono num" data-label="ROI">—</td><td class="mono num" data-label="Settled">0</td></tr><tr><td class="sb-name"><strong>Moneyline · Wide gate (variant)</strong><div class="sb-note">The original formula with looser gates (EV ≥ 0.5%, edge ≥ 1pp) for more bets. Started 2026-11-27.</div></td><td data-label="Status"><span class="sb-status sb-unproven">Unproven · needs ~30</span></td><td class="mono" data-label="Record">0–0 · 16 open</td><td class="mono num " data-label="P&amp;L">—</td><td class="mono num" data-label="ROI">—</td><td class="mono num" data-label="Settled">0</td></tr><tr><td class="sb-name"><strong>Moneyline · Record model only (silent shadow)</strong><div class="sb-note">Always prices with the record + injury model, even when a sportsbook line exists, so the record model keeps its own track record. Same gates as the original. No alerts. Started 2026-11-27.</div></td><td data-label="Status"><span class="sb-status sb-unproven">Starts next refresh</span></td><td class="mono" data-label="Record">0–0</td><td class="mono num " data-label="P&amp;L">—</td><td class="mono num" data-label="ROI">—</td><td class="mono num" data-label="Settled">0</td></tr><tr><td class="sb-name"><strong>Spread · DK-line model (NBA + NFL)</strong><div class="sb-note">Prices Polymarket spreads off DraftKings&#x27; actual spread line (not the moneyline). Gate: edge ≥ 3pp and EV ≥ 2%. Started 2026-11-27.</div></td><td data-label="Status"><span class="sb-status sb-unproven">Unproven · needs ~30</span></td><td class="mono" data-label="Record">0–0 · 2 open</td><td class="mono num " data-label="P&amp;L">—</td><td class="mono num" data-label="ROI">—</td><td class="mono num" data-label="Settled">0</td></tr></tbody></table></section>
 </div>
 </section>
 </main>
